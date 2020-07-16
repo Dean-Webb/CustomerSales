@@ -1,0 +1,199 @@
+select 
+"dr.SalesInvoice"."Reference", 
+"dr.SalesInvoice"."TransactionDate", 
+"dr.SalesInvoice"."SalesInvoiceNumber", 
+"dr.SalesInvoiceLine"."Description", 
+"dr.SalesInvoiceLine"."QuantityInvoice",       
+"dr.SalesInvoiceLine"."ForeignUnitCharge",
+((("dr.SalesInvoiceLine"."QuantityInvoice")*("dr.SalesInvoiceLine"."ForeignUnitCharge"))-("dr.SalesInvoiceLine"."ForeignDiscount")) AS InvTotal,  
+"dr.SalesInvoiceLine"."InvoicedCost",
+(((("dr.SalesInvoiceLine"."QuantityInvoice")*("dr.SalesInvoiceLine"."ForeignUnitCharge"))-("dr.SalesInvoiceLine"."ForeignDiscount"))-("dr.SalesInvoiceLine"."InvoicedCost")) As Profit,
+
+-- transaction type GL, JOB or Inventory
+ 	CASE 	WHEN "dr.SalesInvoiceLine"."AccountId" <> '' THEN 'GL'
+ 	  	WHEN "dr.SalesInvoiceLine"."ProductId" <> '' THEN 'Inventory'	
+      	WHEN "dr.SalesInvoiceLine"."JobId" <> '' THEN 'Jobs'
+      	ELSE 'TypeMissing' END AS Type,          	
+-- Item Number
+ 	CASE 	WHEN "dr.SalesInvoiceLine"."AccountId" <> '' THEN 'gl'
+ 	  	WHEN "dr.SalesInvoiceLine"."ProductId" <> '' THEN "ic.Product"."Code"	
+      	WHEN "dr.SalesInvoiceLine"."JobId" <> '' THEN "jc.Job"."Code"
+      	ELSE 'CodeMissing' END AS ItemNo,
+ -- Group title 
+	CASE 	WHEN "dr.SalesInvoiceLine"."ProductId" <> '' THEN "ic.ProductGroup"."Description"
+ 	  	WHEN "dr.SalesInvoiceLine"."JobId" <> '' THEN "jc.JobGroup"."Description"	
+      	ELSE 'GL' END AS GroupTitle,     
+-- Department
+
+	CASE 	WHEN "ic.ProductExtendedProperty"."Department" <> '' THEN "ic.ProductExtendedProperty"."Department"
+		WHEN "dr.SalesInvoiceLine"."AccountId" <> '' THEN 'Other'
+		WHEN "dr.SalesInvoiceLine"."JobId" <> '' THEN 'Jobs'
+		ELSE 'Other' END AS Department,				
+       "cm.AnalysisCode"."Code" as CustAnalysisCode,
+       "cm.AnalysisCode"."Description" as CustAnalysisDescrip,
+          "cm.AnalysisCode_1"."Code" AS SalesAnalysisCode,
+       "cm.AnalysisCode_1"."Description" AS SalesAnalysisDescription,
+	"dr.Customer"."Name",
+"dr.CustomerExtendedProperty"."Cust Entity Group" As GroupName,
+
+-- Combine customer names
+
+	CASE 	WHEN "dr.CustomerExtendedProperty"."Cust Entity Group" <> '' Then "dr.CustomerExtendedProperty"."Cust Entity Group"
+		Else "dr.Customer"."Name" End AS CustomerGroup,
+
+
+"dr.Customer"."Code",
+"dr.Industry"."Description" as 'industry',
+"dr.CustomerExpanded"."PhysicalSuburb",
+      "dr.CustomerExpanded"."PhysicalState",
+      "dr.CustomerExpanded"."PhysicalCountry",
+	"dr.CustomerExpanded"."PostalSuburb",
+	"dr.CustomerExpanded"."PostalState",
+      "dr.CustomerExpanded"."PostalCountry",
+	"dr.CustomerExpanded"."DeliverySuburb",
+	"dr.CustomerExpanded"."DeliveryState",
+      "dr.CustomerExpanded"."DeliveryCountry",
+"gl.Period"."PeriodId",
+       "gl.Period"."Description" as "Month",
+"gl.Period"."StartDate",
+       "gl.Period"."EndDate",
+"gl.Year"."YearId",
+       "gl.Year"."Description" as "Financial Year"
+
+
+ 
+ from (((((((((((((("dr"."SalesInvoiceLine" "dr.SalesInvoiceLine"
+  inner join "dr"."SalesInvoice" "dr.SalesInvoice"
+       on ("dr.SalesInvoice"."SalesInvoiceId" = "dr.SalesInvoiceLine"."SalesInvoiceId"))
+  inner join "dr"."Customer" "dr.Customer"
+       on ("dr.Customer"."CustomerId" = "dr.SalesInvoice"."InvoiceCustomerId"))
+  Left join "ic"."Product" "ic.Product"
+       on ("ic.Product"."ProductId" = "dr.SalesInvoiceLine"."ProductId"))
+  Left join "ic"."ProductGroup" "ic.ProductGroup"
+       on ("ic.ProductGroup"."ProductGroupId" = "ic.Product"."ProductGroupId"))
+  Left join "jc"."Job" "jc.Job"
+       on ("jc.Job"."JobId" = "dr.SalesInvoiceLine"."JobId"))
+  Left join "jc"."JobGroup" "jc.JobGroup"
+       on ("jc.JobGroup"."JobGroupId" = "jc.Job"."JobGroupId"))
+   Left join "ic"."ProductExtendedProperty" "ic.ProductExtendedProperty"
+       on ("ic.ProductExtendedProperty"."ObjectId" = "ic.Product"."ProductId"))
+ Left join "cm"."AnalysisCode" "cm.AnalysisCode"
+       on ("cm.AnalysisCode"."AnalysisCodeId" = "dr.Customer"."AnalysisCodeId"))
+          Left join "cm"."AnalysisCode" "cm.AnalysisCode_1"
+       on ("cm.AnalysisCode_1"."AnalysisCodeId" = "dr.SalesInvoice"."AnalysisCodeId"))
+Left join "dr"."CustomerExpanded"
+       "dr.CustomerExpanded"
+       on ("dr.CustomerExpanded"."CustomerId" = "dr.Customer"."CustomerId"))
+ inner join "gl"."Period" "gl.Period"
+       on (("gl.Period"."StartDate" <= "dr.SalesInvoice"."TransactionDate")
+       and ("gl.Period"."EndDate" >= "dr.SalesInvoice"."TransactionDate")))
+  inner join "gl"."Year" "gl.Year"
+       on ("gl.Year"."YearId" = "gl.Period"."YearId"))
+  inner join "dr"."CustomerExtendedProperty"
+       "dr.CustomerExtendedProperty"
+       on ("dr.CustomerExtendedProperty"."ObjectId" = "dr.Customer"."CustomerId"))
+ left join "dr"."Industry" "dr.Industry"
+       on ("dr.Industry"."IndustryId" = "dr.Customer"."IndustryId"))
+ 
+ where ("dr.SalesInvoice"."IsPosted" = 1)
+
+
+Union All
+
+select 
+"dr.SalesCredit"."Reference", 
+"dr.SalesCredit"."TransactionDate", 
+"dr.SalesCredit"."SalesCreditNumber", 
+"dr.SalesCreditLine"."Description", 
+"dr.SalesCreditLine"."QuantityCredit", 
+"dr.SalesCreditLine"."ForeignUnitCharge",
+((-("dr.SalesCreditLine"."QuantityCredit")*("dr.SalesCreditLine"."ForeignUnitCharge"))+("dr.SalesCreditLine"."ForeignDiscount")) AS InvTotal,
+"dr.SalesCreditLine"."CreditedCost",
+(((-("dr.SalesCreditLine"."QuantityCredit")*("dr.SalesCreditLine"."ForeignUnitCharge"))+("dr.SalesCreditLine"."ForeignDiscount"))-("dr.SalesCreditLine"."CreditedCost")) AS Profit,
+
+-- transaction type GL, JOB or Inventory
+ 	CASE 	WHEN "dr.SalesCreditLine"."AccountId" <> '' THEN 'GL'
+ 	  	WHEN "dr.SalesCreditLine"."ProductId" <> '' THEN 'Inventory'	
+      	WHEN "dr.SalesCreditLine"."JobId" <> '' THEN 'Jobs'
+      	ELSE 'TypeMissing' END AS Type,          	
+-- Item Number
+ 	CASE 	WHEN "dr.SalesCreditLine"."AccountId" <> '' THEN 'gl'
+ 	  	WHEN "dr.SalesCreditLine"."ProductId" <> '' THEN "ic.Product"."Code"	
+      	WHEN "dr.SalesCreditLine"."JobId" <> '' THEN "jc.Job"."Code"
+      	ELSE 'CodeMissing' END AS ItemNo,
+ -- Group title 
+	CASE 	WHEN "dr.SalesCreditLine"."ProductId" <> '' THEN "ic.ProductGroup"."Description"
+ 	  	WHEN "dr.SalesCreditLine"."JobId" <> '' THEN "jc.JobGroup"."Description"	
+      	ELSE 'GL' END AS GroupTitle,     
+-- Department
+
+	CASE 	WHEN "ic.ProductExtendedProperty"."Department" <> '' THEN "ic.ProductExtendedProperty"."Department"
+		WHEN "dr.SalesCreditLine"."AccountId" <> '' THEN 'Other'
+		WHEN "dr.SalesCreditLine"."JobId" <> '' THEN 'Jobs'
+		ELSE 'Other' END AS Department,				
+      "cm.AnalysisCode"."Code" as CustAnalysisCode,
+       "cm.AnalysisCode"."Description" as CustAnalysisDescrip,
+          "cm.AnalysisCode_1"."Code" AS SalesAnalysisCode,
+       "cm.AnalysisCode_1"."Description" AS SalesAnalysisDescription,
+"dr.Customer"."Name",
+"dr.CustomerExtendedProperty"."Cust Entity Group" As GroupName,
+-- Combine customer names
+
+	CASE 	WHEN "dr.CustomerExtendedProperty"."Cust Entity Group" <> '' Then "dr.CustomerExtendedProperty"."Cust Entity Group"
+		Else "dr.Customer"."Name" End AS CustomerGroup,
+
+"dr.Customer"."Code",
+"dr.Industry"."Description" as 'industry',
+"dr.CustomerExpanded"."PhysicalSuburb",
+      "dr.CustomerExpanded"."PhysicalState",
+      "dr.CustomerExpanded"."PhysicalCountry",
+	"dr.CustomerExpanded"."PostalSuburb",
+	"dr.CustomerExpanded"."PostalState",
+      "dr.CustomerExpanded"."PostalCountry",
+	"dr.CustomerExpanded"."DeliverySuburb",
+	"dr.CustomerExpanded"."DeliveryState",
+      "dr.CustomerExpanded"."DeliveryCountry",
+"gl.Period"."PeriodId",
+       "gl.Period"."Description" as "Month",
+"gl.Period"."StartDate",
+       "gl.Period"."EndDate",
+"gl.Year"."YearId",
+       "gl.Year"."Description" as "Financial Year"
+
+
+ 
+ from (((((((((((((("dr"."SalesCreditLine" "dr.SalesCreditLine"
+  inner join "dr"."SalesCredit" "dr.SalesCredit"
+       on ("dr.SalesCredit"."SalesCreditId" = "dr.SalesCreditLine"."SalesCreditId"))
+  inner join "dr"."Customer" "dr.Customer"
+       on ("dr.Customer"."CustomerId" = "dr.SalesCredit"."InvoiceCustomerId"))
+  Left join "ic"."Product" "ic.Product"
+       on ("ic.Product"."ProductId" = "dr.SalesCreditLine"."ProductId"))
+  Left join "ic"."ProductGroup" "ic.ProductGroup"
+       on ("ic.ProductGroup"."ProductGroupId" = "ic.Product"."ProductGroupId"))
+  Left join "jc"."Job" "jc.Job"
+       on ("jc.Job"."JobId" = "dr.SalesCreditLine"."JobId"))
+  Left join "jc"."JobGroup" "jc.JobGroup"
+       on ("jc.JobGroup"."JobGroupId" = "jc.Job"."JobGroupId"))
+   Left join "ic"."ProductExtendedProperty" "ic.ProductExtendedProperty"
+       on ("ic.ProductExtendedProperty"."ObjectId" = "ic.Product"."ProductId"))
+ Left join "cm"."AnalysisCode" "cm.AnalysisCode"
+       on ("cm.AnalysisCode"."AnalysisCodeId" = "dr.Customer"."AnalysisCodeId"))
+    Left join "cm"."AnalysisCode" "cm.AnalysisCode_1"
+       on ("cm.AnalysisCode_1"."AnalysisCodeId" = "dr.SalesCredit"."AnalysisCodeId"))
+left join "dr"."CustomerExpanded"
+       "dr.CustomerExpanded"
+       on ("dr.CustomerExpanded"."CustomerId" = "dr.Customer"."CustomerId"))
+ inner join "gl"."Period" "gl.Period"
+       on (("gl.Period"."StartDate" <= "dr.SalesCredit"."TransactionDate")
+       and ("gl.Period"."EndDate" >= "dr.SalesCredit"."TransactionDate")))
+  inner join "gl"."Year" "gl.Year"
+       on ("gl.Year"."YearId" = "gl.Period"."YearId"))
+  inner join "dr"."CustomerExtendedProperty"
+       "dr.CustomerExtendedProperty"
+       on ("dr.CustomerExtendedProperty"."ObjectId" = "dr.Customer"."CustomerId"))
+left join "dr"."Industry" "dr.Industry"
+       on ("dr.Industry"."IndustryId" = "dr.Customer"."IndustryId"))
+
+ 
+ where  ("dr.SalesCredit"."IsPosted" = 1)
