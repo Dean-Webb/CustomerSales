@@ -58,11 +58,19 @@ select
 "gl.Period"."StartDate",
        "gl.Period"."EndDate",
 "gl.Year"."YearId",
-       "gl.Year"."Description" as "Financial Year"
+       "gl.Year"."Description" as "Financial Year",
+       	"jc.JobExtendedProperty"."Total Quote",
+       "jc.JobExtendedProperty"."Is Packing/Freight charged sep",
+	"jc.JobExtendedProperty"."Is Ancillaries Inv Separately",
+       "jc.JobExtendedProperty"."Freight",
+       "jc.JobExtendedProperty"."Equipment",
+       "jc.JobExtendedProperty"."Ancilaries",
+       "jc.JobExtendedProperty"."Packaging",
+       (IIF("jc.JobExtendedProperty"."Is Packing/Freight charged sep" = 0,"jc.JobExtendedProperty"."Freight" + "jc.JobExtendedProperty"."Packaging",0)+ IIF("jc.JobExtendedProperty"."Is Ancillaries Inv Separately" = 0,"jc.JobExtendedProperty"."Ancilaries",0)+ ("jc.JobExtendedProperty"."Equipment")) AS "Calculated Job Value"
 
 
  
- from ((((((((((((((("dr"."SalesInvoiceLine" "dr.SalesInvoiceLine"
+ from (((((((((((((((("dr"."SalesInvoiceLine" "dr.SalesInvoiceLine"
   inner join "dr"."SalesInvoice" "dr.SalesInvoice"
        on ("dr.SalesInvoice"."SalesInvoiceId" = "dr.SalesInvoiceLine"."SalesInvoiceId"))
   inner join "dr"."Customer" "dr.Customer"
@@ -96,6 +104,9 @@ Left join "dr"."CustomerExpanded"
        on ("dr.Industry"."IndustryId" = "dr.Customer"."IndustryId"))
  left join "gl"."Account" "gl.Account"
        on ("gl.Account"."AccountId" = "dr.SalesInvoiceLine"."AccountId"))
+ left join "jc"."JobExtendedProperty"
+       "jc.JobExtendedProperty"
+       on ("jc.JobExtendedProperty"."ObjectId" = "jc.Job"."JobId"))
 
  
  where ("dr.SalesInvoice"."IsPosted" = 1)
@@ -161,11 +172,18 @@ select
 "gl.Period"."StartDate",
        "gl.Period"."EndDate",
 "gl.Year"."YearId",
-       "gl.Year"."Description" as "Financial Year"
-
+       "gl.Year"."Description" as "Financial Year",
+       	"jc.JobExtendedProperty"."Total Quote",
+       "jc.JobExtendedProperty"."Is Packing/Freight charged sep",
+	"jc.JobExtendedProperty"."Is Ancillaries Inv Separately",
+       "jc.JobExtendedProperty"."Freight",
+       "jc.JobExtendedProperty"."Equipment",
+       "jc.JobExtendedProperty"."Ancilaries",
+       "jc.JobExtendedProperty"."Packaging",
+(IIF("jc.JobExtendedProperty"."Is Packing/Freight charged sep" = 0,"jc.JobExtendedProperty"."Freight" + "jc.JobExtendedProperty"."Packaging",0)+ IIF("jc.JobExtendedProperty"."Is Ancillaries Inv Separately" = 0,"jc.JobExtendedProperty"."Ancilaries",0)+ ("jc.JobExtendedProperty"."Equipment")) AS "Calculated Job Value"
 
  
- from ((((((((((((((("dr"."SalesCreditLine" "dr.SalesCreditLine"
+ from (((((((((((((((("dr"."SalesCreditLine" "dr.SalesCreditLine"
   inner join "dr"."SalesCredit" "dr.SalesCredit"
        on ("dr.SalesCredit"."SalesCreditId" = "dr.SalesCreditLine"."SalesCreditId"))
   inner join "dr"."Customer" "dr.Customer"
@@ -199,6 +217,9 @@ left join "dr"."Industry" "dr.Industry"
        on ("dr.Industry"."IndustryId" = "dr.Customer"."IndustryId"))
  left join "gl"."Account" "gl.Account"
        on ("gl.Account"."AccountId" = "dr.SalesCreditLine"."AccountId"))
+        left join "jc"."JobExtendedProperty"
+       "jc.JobExtendedProperty"
+       on ("jc.JobExtendedProperty"."ObjectId" = "jc.Job"."JobId"))
 
  
  where  ("dr.SalesCredit"."IsPosted" = 1)
