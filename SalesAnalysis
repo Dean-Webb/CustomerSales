@@ -15,7 +15,7 @@ select
       	WHEN "dr.SalesInvoiceLine"."JobId" <> '' THEN 'Jobs'
       	ELSE 'TypeMissing' END AS Type,          	
 -- Item Number
- 	CASE 	WHEN "dr.SalesInvoiceLine"."AccountId" <> '' THEN 'gl'
+ 	CASE 	WHEN "dr.SalesInvoiceLine"."AccountId" <> '' THEN "gl.Account"."Description"
  	  	WHEN "dr.SalesInvoiceLine"."ProductId" <> '' THEN "ic.Product"."Code"	
       	WHEN "dr.SalesInvoiceLine"."JobId" <> '' THEN "jc.Job"."Code"
       	ELSE 'CodeMissing' END AS ItemNo,
@@ -62,7 +62,7 @@ select
 
 
  
- from (((((((((((((("dr"."SalesInvoiceLine" "dr.SalesInvoiceLine"
+ from ((((((((((((((("dr"."SalesInvoiceLine" "dr.SalesInvoiceLine"
   inner join "dr"."SalesInvoice" "dr.SalesInvoice"
        on ("dr.SalesInvoice"."SalesInvoiceId" = "dr.SalesInvoiceLine"."SalesInvoiceId"))
   inner join "dr"."Customer" "dr.Customer"
@@ -94,6 +94,9 @@ Left join "dr"."CustomerExpanded"
        on ("dr.CustomerExtendedProperty"."ObjectId" = "dr.Customer"."CustomerId"))
  left join "dr"."Industry" "dr.Industry"
        on ("dr.Industry"."IndustryId" = "dr.Customer"."IndustryId"))
+ left join "gl"."Account" "gl.Account"
+       on ("gl.Account"."AccountId" = "dr.SalesInvoiceLine"."AccountId"))
+
  
  where ("dr.SalesInvoice"."IsPosted" = 1)
 
@@ -117,7 +120,7 @@ select
       	WHEN "dr.SalesCreditLine"."JobId" <> '' THEN 'Jobs'
       	ELSE 'TypeMissing' END AS Type,          	
 -- Item Number
- 	CASE 	WHEN "dr.SalesCreditLine"."AccountId" <> '' THEN 'gl'
+ 	CASE 	WHEN "dr.SalesCreditLine"."AccountId" <> '' THEN "gl.Account"."Description"
  	  	WHEN "dr.SalesCreditLine"."ProductId" <> '' THEN "ic.Product"."Code"	
       	WHEN "dr.SalesCreditLine"."JobId" <> '' THEN "jc.Job"."Code"
       	ELSE 'CodeMissing' END AS ItemNo,
@@ -162,7 +165,7 @@ select
 
 
  
- from (((((((((((((("dr"."SalesCreditLine" "dr.SalesCreditLine"
+ from ((((((((((((((("dr"."SalesCreditLine" "dr.SalesCreditLine"
   inner join "dr"."SalesCredit" "dr.SalesCredit"
        on ("dr.SalesCredit"."SalesCreditId" = "dr.SalesCreditLine"."SalesCreditId"))
   inner join "dr"."Customer" "dr.Customer"
@@ -194,6 +197,8 @@ left join "dr"."CustomerExpanded"
        on ("dr.CustomerExtendedProperty"."ObjectId" = "dr.Customer"."CustomerId"))
 left join "dr"."Industry" "dr.Industry"
        on ("dr.Industry"."IndustryId" = "dr.Customer"."IndustryId"))
+ left join "gl"."Account" "gl.Account"
+       on ("gl.Account"."AccountId" = "dr.SalesCreditLine"."AccountId"))
 
  
  where  ("dr.SalesCredit"."IsPosted" = 1)
